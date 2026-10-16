@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load bangla_number %}
+{% block title %}ড্যাশবোর্ড{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>📊 ড্যাশবোর্ড</h1>
+  <p>{{ shop.shop_name }} — আজকের সারসংক্ষেপ</p>
+</div>
+
+<!-- Quick Actions -->
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <a href="{% url 'voice_sell' %}" class="btn btn-green">🎤 বিক্রয় করেছি</a>
+  <a href="{% url 'voice_buy' %}" class="btn btn-orange">🎙️ পণ্য কিনেছি</a>
+  <a href="{% url 'baki_list' %}" class="btn btn-purple">💸 বাকি যোগ করুন</a>
+  <a href="{% url 'records' %}" class="btn btn-outline">📋 হিসাব দেখুন</a>
+</div>
+
+<!-- Stats — ৫টা card -->
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+
+  <div class="card card-pad">
+    <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:6px">আজ বিক্রয়</div>
+    <div style="font-size:20px;font-weight:700;color:#16a34a">৳{{ sell_d|floatformat:0|bn }}</div>
+  </div>
+
+  <div class="card card-pad">
+    <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:6px">আজ ক্রয়</div>
+    <div style="font-size:20px;font-weight:700;color:#ea580c">৳{{ buy_d|floatformat:0|bn }}</div>
+  </div>
+
+  <!-- ✅ আজকের real balance (বাকি বাদে) -->
+  <div class="card card-pad" style="border-top:3px solid {% if real_balance_d >= 0 %}#16a34a{% else %}#dc2626{% endif %}">
+    <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:6px">আজ ব্যালেন্স</div>
+    <div style="font-size:20px;font-weight:700;color:{% if real_balance_d >= 0 %}#16a34a{% else %}#dc2626{% endif %}">
+      ৳{{ real_balance_d|floatformat:0|bn }}
+    </div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">বাকি বাদে</div>
+  </div>
+
+  <!-- ✅ এ মাসের real balance (বাকি বাদে) -->
+  <div class="card card-pad" style="border-top:3px solid {% if profit_m >= 0 %}#16a34a{% else %}#dc2626{% endif %}">
+    <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:6px">মাসিক ব্যালেন্স</div>
+    <div style="font-size:20px;font-weight:700;color:{% if profit_m >= 0 %}#16a34a{% else %}#dc2626{% endif %}">
+      ৳{{ profit_m|floatformat:0|bn }}
+    </div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">বাকি বাদে</div>
+  </div>
+
+  <!-- ✅ মোট pending বাকি -->
+  <div class="card card-pad" style="border-top:3px solid #7c3aed;background:#faf5ff">
+    <div style="font-size:11px;font-weight:600;color:#5b21b6;text-transform:uppercase;margin-bottom:6px">💸 পেন্ডিং বাকি</div>
+    <div style="font-size:20px;font-weight:700;color:#7c3aed">৳{{ baki_total|floatformat:0|bn }}</div>
+    <div style="font-size:10px;margin-top:2px">
+      <a href="{% url 'baki_list' %}" style="color:#7c3aed;text-decoration:none">পরিশোধ করুন →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ✅ বাকি থাকলে alert banner -->
+{% if baki_total > 0 %}
+<div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <div style="font-size:13px;color:#5b21b6">
+    💸 <strong>৳{{ baki_total|floatformat:0|bn }} টাকা</strong> এখনো পাওয়া যায়নি —
+    বাকি পরিশোধ হলে balance এ যোগ হবে।
+  </div>
+  <a href="{% url 'baki_list' %}" class="btn btn-sm btn-purple">বাকির তালিকা দেখুন</a>
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+  <!-- Chart -->
+  <div class="card card-pad">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px">গত ৭ দিন — বিক্রয় vs ক্রয়</div>
+    <canvas id="chart" height="90"></canvas>
+  </div>
+
+  <!-- Low Stock -->
+  <div class="card">
+    <div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;font-weight:600">⚠️ কম স্টক</div>
+    {% if low_stock %}
+    {% for p in low_stock %}
+    <div style="padding:10px 16px;border-bottom:1px solid #f8fafc;display:flex;justify-content:space-between;font-size:13px">
+      <span>{{ p.name }}</span>
+      <span class="badge badge-danger">{{ p.stock|bn }} {{ p.unit }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="padding:20px;text-align:center;font-size:13px;color:#94a3b8">✅ সব ঠিক আছে</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="card" style="margin-top:16px">
+  <div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:13px;font-weight:600">সাম্প্রতিক লেনদেন</span>
+    <a href="{% url 'records' %}" style="font-size:12px;color:#16a34a;text-decoration:none">সব দেখুন →</a>
+  </div>
+  <table class="table">
+    <thead>
+      <tr><th>তারিখ</th><th>বিবরণ</th><th>ধরন</th><th style="text-align:right">টাকা</th></tr>
+    </thead>
+    <tbody>
+    {% for t in recent %}
+    <tr>
+      <td style="color:#64748b">{{ t.date|date:"j F, Y"|bn }}</td>
+      <td>{{ t.description|truncatechars:40|bn }}</td>
+      <td><span class="badge badge-{{ t.transaction_type }}">{{ t.get_transaction_type_display }}</span></td>
+      <td style="text-align:right;font-weight:600;color:{% if t.transaction_type == 'sell' %}#16a34a{% else %}#ea580c{% endif %}">
+        ৳{{ t.total_amount|floatformat:0|bn }}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:24px">এখনো কোনো লেনদেন নেই</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toBn(n) {
+  return String(Math.round(n)).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+}
+new Chart(document.getElementById('chart'), {
+  type: 'bar',
+  data: {
+    labels: {{ chart_labels|safe }},
+    datasets: [
+      { label:'বিক্রয়', data:{{ chart_sell|safe }}, backgroundColor:'rgba(22,163,74,.75)', borderRadius:6 },
+      { label:'ক্রয়',   data:{{ chart_buy|safe }},  backgroundColor:'rgba(234,88,12,.65)',  borderRadius:6 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position:'top' },
+      tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ৳' + toBn(ctx.parsed.y) }}
+    },
+    scales: { y: { beginAtZero:true, ticks: { callback: v => toBn(v) }}}
+  }
+});
+</script>
+{% endblock %}

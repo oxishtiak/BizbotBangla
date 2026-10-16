@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}পণ্য সম্পাদনা{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>✏️ পণ্য সম্পাদনা</h1>
+  <p><a href="{% url 'inventory' %}" style="color:#64748b;text-decoration:none">← পণ্য তালিকায় ফিরুন</a></p>
+</div>
+<div style="max-width:500px">
+<div class="card card-pad">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label>পণ্যের নাম *</label>
+      <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>বর্তমান স্টক</label>
+        <input type="number" name="stock" class="form-control" value="{{ product.stock }}" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>একক</label>
+        <select name="unit" class="form-select">
+          <option value="পিস" {% if product.unit == "পিস" %}selected{% endif %}>পিস</option>
+          <option value="কেজি" {% if product.unit == "কেজি" %}selected{% endif %}>কেজি</option>
+          <option value="লিটার" {% if product.unit == "লিটার" %}selected{% endif %}>লিটার</option>
+          <option value="ডজন" {% if product.unit == "ডজন" %}selected{% endif %}>ডজন</option>
+          <option value="বস্তা" {% if product.unit == "বস্তা" %}selected{% endif %}>বস্তা</option>
+          <option value="প্যাকেট" {% if product.unit == "প্যাকেট" %}selected{% endif %}>প্যাকেট</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>ক্রয় মূল্য (৳)</label>
+        <input type="number" name="buy_price" class="form-control" value="{{ product.buy_price }}" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>বিক্রয় মূল্য (৳)</label>
+        <input type="number" name="sell_price" class="form-control" value="{{ product.sell_price }}" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>কম স্টক সতর্কতা</label>
+      <input type="number" name="low_stock_alert" class="form-control" value="{{ product.low_stock_alert }}" min="0">
+      <div style="font-size:12px;color:#64748b;margin-top:4px">এই পরিমাণের নিচে গেলে সতর্কতা দেখাবে</div>
+    </div>
+    <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">✅ আপডেট করুন</button>
+  </form>
+</div>
+</div>
+{% endblock %}

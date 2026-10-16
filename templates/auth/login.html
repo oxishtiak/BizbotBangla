@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+{% load static %}
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>লগইন — BizBot Bangla</title>
+<link rel="icon" type="image/png" sizes="96x96" href="{% static 'logo.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri',sans-serif}
+body{background:linear-gradient(135deg,#14532d 0%,#16a34a 50%,#052e16 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:white;border-radius:20px;padding:36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.logo{text-align:center;margin-bottom:28px}
+.logo .brand{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+.logo-mark{width:56px;height:56px;display:block;object-fit:contain;flex:0 0 auto}
+.logo h1{font-size:22px;font-weight:700;color:#0f172a;line-height:1.1}
+.logo p{font-size:13px;color:#64748b;margin-top:3px}
+label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+input{width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Hind Siliguri',sans-serif;transition:border .15s}
+input:focus{outline:none;border-color:#16a34a}
+.form-g{margin-bottom:16px}
+.btn{width:100%;padding:12px;background:#16a34a;color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Hind Siliguri',sans-serif;margin-top:4px;transition:background .15s}
+.btn:hover{background:#15803d}
+.link{text-align:center;margin-top:18px;font-size:13px;color:#64748b}
+.link a{color:#16a34a;font-weight:600;text-decoration:none}
+.err{background:#fce8e8;color:#991b1b;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="brand">
+      <img class="logo-mark" alt="BizBot logo" src="{% static 'logo.png' %}">
+      <h1>BizBot Bangla</h1>
+    </div>
+    <p>আপনার দোকানের AI সহকারী</p>
+  </div>
+  {% for msg in messages %}<div class="err">{{ msg }}</div>{% endfor %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-g"><label>Username</label><input type="text" name="username" placeholder="username লিখুন" required></div>
+    <div class="form-g"><label>পাসওয়ার্ড</label><input type="password" name="password" placeholder="পাসওয়ার্ড" required></div>
+    <button type="submit" class="btn">লগইন করুন →</button>
+  </form>
+  <div class="link">নতুন দোকান? <a href="{% url 'register' %}">রেজিস্ট্রেশন করুন</a></div>
+</div>
+</body></html>

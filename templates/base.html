@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+{% load static %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}BizBot Bangla{% endblock %}</title>
+<link rel="icon" type="image/png" sizes="96x96" href="{% static 'logo.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #16a34a; --green-light: #dcfce7; --green-dark: #14532d;
+  --orange: #ea580c; --orange-light: #fff7ed; --orange-dark: #7c2d12;
+  --blue: #1d4ed8; --blue-light: #dbeafe;
+  --purple: #7c3aed; --purple-light: #ede9fe;
+  --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+  --text: #0f172a; --text2: #475569; --text3: #94a3b8;
+  --radius: 14px; --shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Hind Siliguri',sans-serif; }
+body { background:var(--bg); color:var(--text); min-height:100vh; }
+
+.sidebar {
+  position:fixed; top:0; left:0; width:220px; height:100vh;
+  background:#fff; border-right:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:50;
+}
+.sidebar-logo { padding:20px 18px 16px; border-bottom:1px solid var(--border); }
+.sidebar-logo .brand { display:flex; align-items:center; gap:10px; }
+.sidebar-logo .logo-icon { width:28px; height:28px; display:block; object-fit:contain; flex:0 0 auto; }
+.sidebar-logo h2 { font-size:16px; font-weight:700; color:var(--text); line-height:1.1; }
+.sidebar-logo p { font-size:11px; color:var(--text3); margin-top:1px; }
+.sidebar-shop {
+  padding:12px 18px; background:var(--green-light);
+  border-bottom:1px solid var(--border); font-size:12px;
+}
+.sidebar-shop .shop-name { font-weight:600; color:var(--green-dark); font-size:13px; }
+.sidebar-shop .owner { color:var(--green); }
+nav { flex:1; padding:10px 10px; overflow-y:auto; }
+.nav-section { font-size:10px; font-weight:600; color:var(--text3); text-transform:uppercase;
+  letter-spacing:.8px; padding:8px 8px 4px; margin-top:6px; }
+nav a {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 10px; border-radius:10px;
+  color:var(--text2); text-decoration:none; font-size:14px;
+  transition:all .15s; margin-bottom:2px;
+}
+nav a:hover { background:var(--bg); color:var(--text); }
+nav a.active-sell   { background:var(--green-light);  color:var(--green-dark);  font-weight:600; }
+nav a.active-buy    { background:var(--orange-light); color:var(--orange-dark); font-weight:600; }
+nav a.active        { background:var(--blue-light);   color:var(--blue);        font-weight:600; }
+nav a.active-baki   { background:var(--purple-light); color:var(--purple);      font-weight:600; }
+nav a .icon { font-size:16px; width:22px; text-align:center; }
+.sidebar-bottom { padding:12px 10px; border-top:1px solid var(--border); }
+.sidebar-bottom a {
+  display:flex; align-items:center; gap:8px; padding:9px 10px;
+  border-radius:10px; color:var(--text2); text-decoration:none; font-size:13px;
+}
+.sidebar-bottom a:hover { background:var(--bg); color:var(--text); }
+
+.main { margin-left:220px; padding:24px; }
+.page-header { margin-bottom:20px; }
+.page-header h1 { font-size:20px; font-weight:700; color:var(--text); }
+.page-header p  { font-size:13px; color:var(--text2); margin-top:2px; }
+
+.card { background:var(--card); border-radius:var(--radius); border:1px solid var(--border); }
+.card-pad { padding:18px 20px; }
+
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:9px 16px; border-radius:10px; font-size:14px;
+  font-weight:500; cursor:pointer; border:none; transition:all .15s;
+  text-decoration:none; font-family:'Hind Siliguri',sans-serif;
+}
+.btn-green   { background:var(--green);  color:white; }
+.btn-green:hover   { background:#15803d; }
+.btn-orange  { background:var(--orange); color:white; }
+.btn-orange:hover  { background:#c2410c; }
+.btn-blue    { background:var(--blue);   color:white; }
+.btn-purple  { background:var(--purple); color:white; }
+.btn-outline { background:white; color:var(--text2); border:1px solid var(--border); }
+.btn-outline:hover { background:var(--bg); }
+.btn-danger  { background:#dc2626; color:white; }
+.btn-danger:hover  { background:#b91c1c; }
+.btn-sm { padding:6px 12px; font-size:12px; }
+
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; }
+.form-control, .form-select {
+  width:100%; padding:10px 12px; border:1.5px solid var(--border);
+  border-radius:10px; font-size:14px; color:var(--text); background:white;
+  font-family:'Hind Siliguri',sans-serif; transition:border .15s;
+}
+.form-control:focus, .form-select:focus { outline:none; border-color:var(--green); }
+
+.toast-wrap { position:fixed; top:16px; right:16px; z-index:999; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  background:white; border:1px solid var(--border); border-radius:10px;
+  padding:10px 14px; font-size:13px; box-shadow:var(--shadow);
+  display:flex; align-items:center; gap:8px; min-width:200px;
+  animation: slideIn .2s ease;
+}
+.toast.success { border-left:3px solid var(--green); }
+.toast.error   { border-left:3px solid #dc2626; }
+@keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+.table { width:100%; border-collapse:collapse; }
+.table th { padding:10px 14px; font-size:12px; font-weight:600; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.5px; background:var(--bg);
+  border-bottom:1px solid var(--border); text-align:left; }
+.table td { padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border); }
+.table tr:last-child td { border-bottom:none; }
+.table tr:hover td { background:#fafafa; }
+
+.badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; }
+.badge-sell    { background:var(--green-light);  color:var(--green-dark); }
+.badge-buy     { background:var(--orange-light); color:var(--orange-dark); }
+.badge-danger  { background:#fce8e8; color:#991b1b; }
+.badge-warning { background:#fef9c3; color:#854d0e; }
+.badge-ok      { background:var(--green-light);  color:var(--green-dark); }
+.badge-baki    { background:var(--purple-light); color:var(--purple); }
+
+.msg { padding:10px 14px; border-radius:10px; font-size:13px; margin-bottom:16px; }
+.msg-success { background:var(--green-light);  color:var(--green-dark); }
+.msg-error   { background:#fce8e8; color:#991b1b; }
+
+@media(max-width:768px){
+  .sidebar{ width:100%; height:auto; position:relative; }
+  .main{ margin-left:0; padding:16px; }
+}
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+{% with shop=request.user.shop %}
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">
+      <img class="logo-icon" alt="BizBot logo" src="{% static 'logo.png' %}">
+      <h2>BizBot Bangla</h2>
+    </div>
+    <p>AI ব্যবসায়িক সহকারী</p>
+  </div>
+  <div class="sidebar-shop">
+    <div class="shop-name">{{ shop.shop_name }}</div>
+    <div class="owner">{{ shop.owner_name }}</div>
+  </div>
+  <nav>
+    <div class="nav-section">ড্যাশবোর্ড</div>
+    <a href="{% url 'dashboard' %}"
+       class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <span class="icon">📊</span> ড্যাশবোর্ড
+    </a>
+
+    <div class="nav-section">ভয়েস হিসাব</div>
+    <a href="{% url 'voice_sell' %}"
+       class="{% if request.resolver_match.url_name == 'voice_sell' %}active-sell{% endif %}">
+      <span class="icon">🎤</span> বিক্রয় করেছি
+    </a>
+    <a href="{% url 'voice_buy' %}"
+       class="{% if request.resolver_match.url_name == 'voice_buy' %}active-buy{% endif %}">
+      <span class="icon">🎙️</span> পণ্য কিনেছি
+    </a>
+
+    <div class="nav-section">রিপোর্ট</div>
+    <a href="{% url 'records' %}?period=daily"
+       class="{% if request.resolver_match.url_name == 'records' and request.GET.period == 'daily' or request.resolver_match.url_name == 'records' and not request.GET.period %}active{% endif %}">
+      <span class="icon">📅</span> আজকের হিসাব
+    </a>
+    <a href="{% url 'records' %}?period=weekly"
+       class="{% if request.resolver_match.url_name == 'records' and request.GET.period == 'weekly' %}active{% endif %}">
+      <span class="icon">📆</span> সাপ্তাহিক
+    </a>
+    <a href="{% url 'records' %}?period=monthly"
+       class="{% if request.resolver_match.url_name == 'records' and request.GET.period == 'monthly' %}active{% endif %}">
+      <span class="icon">🗓️</span> মাসিক
+    </a>
+
+    <div class="nav-section">স্টক</div>
+    <a href="{% url 'inventory' %}"
+       class="{% if 'inventory' in request.resolver_match.url_name or 'product' in request.resolver_match.url_name %}active{% endif %}">
+      <span class="icon">📦</span> পণ্য ও স্টক
+    </a>
+
+    <!-- ✅ বাকির হিসাব -->
+    <div class="nav-section">বাকি</div>
+    <a href="{% url 'baki_list' %}"
+       class="{% if 'baki' in request.resolver_match.url_name %}active-baki{% endif %}">
+      <span class="icon">💸</span> বাকির হিসাব
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="{% url 'logout' %}"><span>🚪</span> লগআউট</a>
+  </div>
+</div>
+{% endwith %}
+{% endif %}
+
+<div class="{% if user.is_authenticated %}main{% endif %}">
+  <div class="toast-wrap" id="toastWrap"></div>
+  {% for msg in messages %}
+  <div class="msg msg-{% if msg.tags == 'error' %}error{% else %}success{% endif %}">{{ msg }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</div>
+
+<script>
+function toast(msg, type='success'){
+  const w = document.getElementById('toastWrap');
+  if(!w) return;
+  const d = document.createElement('div');
+  d.className = 'toast ' + type;
+  d.innerHTML = (type==='success'?'✅':'❌') + ' ' + msg;
+  w.appendChild(d);
+  setTimeout(()=>d.remove(), 3000);
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

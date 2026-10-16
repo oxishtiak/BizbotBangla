@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% block title %}বিক্রয় — BizBot Bangla{% endblock %}
+{% block extra_head %}
+<style>
+.voice-card{background:linear-gradient(135deg,#052e16,#14532d);border-radius:20px;padding:28px;color:white;margin-bottom:16px}
+.voice-card h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.voice-card p{font-size:13px;opacity:.8}
+.mic-wrap{display:flex;flex-direction:column;align-items:center;margin:20px 0}
+.mic-btn{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);font-size:34px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;position:relative}
+.mic-btn:hover{background:rgba(255,255,255,.25)}
+.mic-btn.rec{background:rgba(239,68,68,.3);border-color:#ef4444;animation:pu 1s infinite}
+.mic-btn.rec::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid #ef4444;animation:ri 1.2s ease-out infinite}
+@keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes ri{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.6)}}
+.mic-hint{margin-top:10px;font-size:13px;opacity:.8;text-align:center}
+.transcript-box{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px 16px;min-height:50px;font-size:15px;line-height:1.6;margin:12px 0}
+.transcript-box.ph{opacity:.5;font-size:13px}
+.perm-alert{background:#fef9c3;border:1px solid #fbbf24;border-radius:10px;padding:12px 14px;font-size:13px;color:#78350f;margin-bottom:14px;display:none}
+.result-box{background:white;border-radius:16px;padding:18px;margin-top:14px;display:none}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.r-cell{text-align:center;padding:10px;background:#f8fafc;border-radius:10px}
+.r-label{font-size:11px;color:#64748b;margin-bottom:4px}
+.r-val{font-size:16px;font-weight:600;color:#0f172a}
+.r-val.green{color:#16a34a}
+.manual-form{border-top:1px solid #f1f5f9;padding-top:14px;margin-top:2px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.save-btn{width:100%;padding:12px;background:#16a34a;color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Hind Siliguri',sans-serif;margin-top:12px}
+.save-btn:hover{background:#15803d}
+.save-btn:disabled{opacity:.5;cursor:not-allowed}
+.speak-btn{background:transparent;border:1px solid rgba(255,255,255,.4);color:white;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Hind Siliguri',sans-serif;margin-left:8px}
+.examples{margin-top:10px}
+.ex-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Hind Siliguri',sans-serif;margin:3px;display:inline-block}
+.ex-btn:hover{background:rgba(255,255,255,.2)}
+.stop-btn{width:100%;padding:10px;background:rgba(239,68,68,.3);border:1px solid #ef4444;color:white;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Hind Siliguri',sans-serif;margin-top:8px;display:none}
+.tip-box{background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;font-size:12px;margin-top:10px;opacity:.9;line-height:1.8}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🎤 বিক্রয় করেছি</h1>
+  <p>বাংলায় বলুন কী বেচলেন — AI নিজে হিসাব লিখবে</p>
+</div>
+
+<div class="perm-alert" id="permAlert">
+  <strong>⚠️ মাইক্রোফোনের অনুমতি দিন!</strong><br>
+  Browser এর উপরে একটি popup দেখাবে — <strong>"Allow"</strong> বা <strong>"অনুমতি দিন"</strong> চাপুন।<br>
+  <em>না দেখালে: address bar এ 🔒 icon → Site settings → Microphone → Allow</em>
+</div>
+
+<div class="voice-card">
+  <h2>📢 বলুন কী বেচলেন</h2>
+  <p>পণ্যের নাম বাংলায়, সংখ্যা ইংরেজিতে বললে সবচেয়ে ভালো বোঝে</p>
+
+  <div class="tip-box">
+    💡 <strong>বলার নিয়ম:</strong> পণ্যের নাম + পরিমাণ (ইংরেজি) + টাকা (ইংরেজি)<br>
+    ✅ ভালো: <em>"ডিম 50টা বেচলাম 300 টাকায়"</em><br>
+    ✅ ভালো: <em>"চাল 10 কেজি বেচলাম 600 টাকায়"</em><br>
+    ⚠️ এড়িয়ে চলুন: "পঞ্চাশটা ডিম তিনশো টাকায়"
+  </div>
+
+  <div class="mic-wrap">
+    <button class="mic-btn" id="micBtn">🎤</button>
+    <div class="mic-hint" id="micHint">ক্লিক করে বলুন</div>
+  </div>
+
+  <button class="stop-btn" id="stopBtn" onclick="stopRec()">⏹ বলা শেষ — result দেখুন</button>
+
+  <div class="transcript-box ph" id="transcript">যা বলবেন তা এখানে দেখাবে...</div>
+
+  <div class="examples">
+    <span style="font-size:12px;opacity:.7">উদাহরণ বাক্য (ক্লিক করুন):</span><br>
+    <button class="ex-btn" onclick="fillExample(this)">ডিম 50টা বেচলাম 300 টাকায়</button>
+    <button class="ex-btn" onclick="fillExample(this)">চাল 10 কেজি বেচলাম 600 টাকায়</button>
+    <button class="ex-btn" onclick="fillExample(this)">তেল 5 লিটার বেচলাম 900 টাকায়</button>
+  </div>
+
+  <div class="result-box" id="resultBox">
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">
+      AI বুঝেছে:
+      <button class="speak-btn" onclick="speakResult()">🔊 শুনুন</button>
+    </div>
+    <div class="result-grid">
+      <div class="r-cell"><div class="r-label">পণ্য</div><div class="r-val" id="rProduct">—</div></div>
+      <div class="r-cell"><div class="r-label">পরিমাণ</div><div class="r-val" id="rQty">—</div></div>
+      <div class="r-cell"><div class="r-label">মোট টাকা</div><div class="r-val green" id="rPrice">—</div></div>
+    </div>
+    <div class="manual-form">
+      <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px">দরকার হলে ঠিক করুন:</div>
+      <div class="form-row">
+        <div>
+          <label style="font-size:12px;color:#374151;font-weight:600">পণ্য সিলেক্ট করুন</label>
+          <select class="form-select" id="selProduct" style="margin-top:4px;font-size:13px">
+            <option value="">— পণ্য —</option>
+            {% for p in products %}
+            <option value="{{ p.id }}" data-price="{{ p.sell_price }}">{{ p.name }} (স্টক: {{ p.stock }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:#374151;font-weight:600">পরিমাণ</label>
+          <input type="number" class="form-control" id="inpQty" placeholder="০" min="0" step="0.01" style="margin-top:4px;font-size:13px">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px">
+        <div>
+          <label style="font-size:12px;color:#374151;font-weight:600">একক মূল্য (৳)</label>
+          <input type="number" class="form-control" id="inpUnitPrice" placeholder="০" min="0" step="0.01" style="margin-top:4px;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:12px;color:#374151;font-weight:600">মোট টাকা (৳) *</label>
+          <input type="number" class="form-control" id="inpTotal" placeholder="০" min="0" step="0.01" style="margin-top:4px;font-size:13px" required>
+        </div>
+      </div>
+      <input type="hidden" id="inpDesc">
+      <button class="save-btn" id="saveBtn" onclick="saveIt()">✅ বিক্রয় সেভ করুন</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec      = null;
+let isRec    = false;
+let userStop = false;
+let finalTxt = '';
+
+const btn       = document.getElementById('micBtn');
+const hint      = document.getElementById('micHint');
+const trans     = document.getElementById('transcript');
+const resultBox = document.getElementById('resultBox');
+const permAlert = document.getElementById('permAlert');
+const stopBtn   = document.getElementById('stopBtn');
+
+const PRODUCTS = ['ডিম','চাল','ডাল','তেল','আলু','পেঁয়াজ','চিনি','লবণ','মাছ','মাংস','রুটি','বিস্কুট','সাবান','দুধ','ময়দা','চা','কফি','সিগারেট','পানি','মরিচ','হলুদ','আদা','রসুন','ঘি','মাখন','চকলেট','বিস্কিট','নুডলস','ডাবল রুটি','শাক','টমেটো','লাউ','পুদিনা','পাপড়','আচার','চাটনি','ভাত','কারি পাতা','কাপড়ের ঝুল','দাঁত ব্রাশ','ব্লেড','সিগার','সিগার আলু','সয়াবিন তেল','সরিষার তেল','নারকেল তেল','আয়োডিনযুক্ত লবণ','কাঁচা মরিচ','মরিচ পাউডার','আম','কলা','আপেল','অরেঞ্জ','আঙুর','পাপাইয়া','লেবু','আনারস','নাশপাতি','মাল্টা','তরমুজ','খরবুজ','কুমড়া','বেগুন','গাজর','বিট','ক্যাবেজ','ফুলকপি','ব্রকলি','শালগম','পালং শাক','লাল শাক','পুদিনা','কেনাফ','মুলো','মুলো শাক','সিম','ওলকপি','কচু','কচু শাক','নটে শাক','গোল আলু','মিষ্টি আলু','ঝিঙে','পটোল','ঢেঁড়স','বরবটি','মুগ ডাল','ছোলা','মসুর ডাল','খেসারি','বুট','মাষকলাই','সাগু','ময়দা','সুজি','দই','ছানা','পনির','মোজারেলা','ঘিয়ে','চর্বি','তাজা মাংস','গরুর মাংস','খাসির মাংস','মুরগির মাংস','সাদা মাছ','চিংড়ি','রুই মাছ','কাতলা মাছ','পাঙাস মাছ','কই মাছ','শিং মাছ','মাগুর মাছ','পোনা','চিংড়ি ভাজা','শুঁটকি','লবণাক্ত মাছ','তেল মাছ','বোয়াল','ইলিশ','চ্যালা','ফলি মাছ','পার্চ','জৈল','ধুবারি','বাঘাইর','ভাঙড়','কই','শোল','বিষ','সাপ মাছ','এল মাছ','প্রজাপতি','শাদ','ভ্যাতি','নিগুলো','দোসা','ঘুনি','খাইবা','চাকি','আইড়','কুচি','গুদ','বতাসি','গালদা','সালটি','বলাকা','টাকা মাছ','টিপসু','তারা বাইম','বোয়াল','মেনি','পুঠি','পাবদা','সিলভার কার্প','গ্রাস কার্প','কমন কার্প','সিলভার সালমন','বিগহেড','টলাপিয়া','পাঙ্গাসিয়াস','সরপুঁটি','টাকি','ভ্যাপা','ট্রেভালি','কুচিয়া','বাম','মৌলভী মাছ','গঙ্গা চিংড়ি','ঘাসের চিংড়ি','খয়রা','কাঠামুঠা','ছাছুনী','দেশি ডুমুর','নিমপাতা','ঝাউপাতা','নারকেল','নারিকেল','সুপারি','তাম্বুল','বেতেল','পান','আম পাতা','কাঁচি পাতা','জবা','ফুল','গাঁদা','গোলাপ','হাসনাহেনা','মল্লিকা','বেলফুল','জুঁই','চাঁপা','শিউলি','বকুল','জাতীয় ফুল','কমেল','ঘাস','সবুজ সবজি','টাটকা সবজি','হিমায়িত সবজি','ডিব্বাবন্দী','সংরক্ষিত খাদ্য','প্যাকেজড খাবার','আটা','চিড়া','মুড়ি','খৈ','ভাজা','বেসন','নুন','ঘি','দেশি ঘি','মাখন','মালাই','পনির','প্যাস্তা','ম্যাকারনি','সেমিয়া','সয়াবিন','সয়াবিন দুধ','বিকল্প দুধ','দুধের পাউডার','কন্ডেন্সড মিল্ক','চকলেট','আইসক্রিম','মিষ্টি','খিচুড়ি','হালুয়া','জিলাপি','রসগোল্লা','সন্দেশ','সাংগুয়া','মিষ্টান্ন','কেক','কুকি','পেস্ট্রি','পাস্তা','মাখা খিচুরি'];
+
+function toBn(n) {
+  return String(Math.round(n)).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+}
+
+// ── বাংলা শব্দ → সংখ্যা ─────────────────────────────────
+function banglaWordToNum(txt) {
+  // বাংলা digit → English digit
+  txt = txt.replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString());
+
+  // বাংলা শব্দ → সংখ্যা
+  const patterns = [
+    [/দশ হাজার/g,'10000'],[/পাঁচ হাজার/g,'5000'],
+    [/চার হাজার/g,'4000'],[/তিন হাজার/g,'3000'],
+    [/দুই হাজার/g,'2000'],[/এক হাজার/g,'1000'],
+    [/নয়শো/g,'900'],[/আটশো/g,'800'],[/সাতশো/g,'700'],
+    [/ছয়শো/g,'600'],[/পাঁচশো/g,'500'],[/চারশো/g,'400'],
+    [/তিনশো/g,'300'],[/দুইশো/g,'200'],[/একশো/g,'100'],
+    [/নব্বই/g,'90'],[/আশি/g,'80'],[/সত্তর/g,'70'],
+    [/ষাট/g,'60'],[/পঞ্চাশ/g,'50'],[/চল্লিশ/g,'40'],
+    [/ত্রিশ/g,'30'],[/পঁচিশ/g,'25'],[/বিশ/g,'20'],
+    [/উনিশ/g,'19'],[/আঠারো/g,'18'],[/সতেরো/g,'17'],
+    [/ষোলো/g,'16'],[/পনেরো/g,'15'],[/চোদ্দ/g,'14'],
+    [/তেরো/g,'13'],[/বারো/g,'12'],[/এগারো/g,'11'],
+    [/দশ/g,'10'],[/নয়/g,'9'],[/আট/g,'8'],
+    [/সাত/g,'7'],[/ছয়/g,'6'],[/পাঁচ/g,'5'],
+    [/চার/g,'4'],[/তিন/g,'3'],[/দুই/g,'2'],[/এক/g,'1'],
+  ];
+
+  for (const [p, v] of patterns) txt = txt.replace(p, v);
+  return txt;
+}
+
+// ── মাইক বাটন ──────────────────────────────────────────
+btn.addEventListener('click', () => {
+  if (!SR) { alert('Chrome বা Edge browser ব্যবহার করুন।'); return; }
+  if (isRec) { stopRec(); }
+  else { userStop = false; finalTxt = ''; startRec(); }
+});
+
+function stopRec() {
+  userStop = true;
+  isRec = false;
+  if (rec) { try { rec.stop(); } catch(e){} }
+  setIdleUI();
+  const txt = finalTxt.trim();
+  if (txt.length > 2) processText(txt);
+  else hint.textContent = 'কিছু শোনা যায়নি — আবার চেষ্টা করুন';
+}
+
+function setRecUI() {
+  btn.classList.add('rec'); btn.textContent = '⏹';
+  stopBtn.style.display = 'block';
+  hint.textContent = 'শুনছি... বলুন। শেষ হলে নিচের বাটনে চাপুন';
+  trans.classList.remove('ph');
+  resultBox.style.display = 'none';
+  permAlert.style.display = 'none';
+}
+
+function setIdleUI() {
+  btn.classList.remove('rec'); btn.textContent = '🎤';
+  stopBtn.style.display = 'none';
+  hint.textContent = 'আবার বলতে ক্লিক করুন';
+}
+
+function startRec() {
+  if (rec) { try { rec.abort(); } catch(e){} }
+  rec = new SR();
+  rec.lang            = 'bn-BD';
+  rec.continuous      = true;
+  rec.interimResults  = true;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => { isRec = true; if (!userStop) setRecUI(); };
+
+  rec.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalTxt += t + ' ';
+      else interim += t;
+    }
+    trans.textContent = (finalTxt + interim).trim();
+  };
+
+  rec.onend = () => {
+    isRec = false;
+    if (!userStop) setTimeout(() => { if (!userStop) startRec(); }, 200);
+  };
+
+  rec.onerror = (e) => {
+    isRec = false;
+    if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+      userStop = true; permAlert.style.display = 'block'; setIdleUI();
+      hint.textContent = 'অনুমতি দিন তারপর আবার চেষ্টা করুন';
+    } else if (e.error === 'network') {
+      userStop = true; setIdleUI();
+      hint.textContent = 'Internet connection চেক করুন';
+    } else if (e.error === 'aborted') {
+      // ঠিক আছে
+    } else {
+      setTimeout(() => { if (!userStop) startRec(); }, 500);
+    }
+  };
+
+  try { rec.start(); } catch(e) { hint.textContent = 'আবার চেষ্টা করুন'; }
+}
+
+function fillExample(el) {
+  userStop = true;
+  if (rec) { try { rec.abort(); } catch(e){} }
+  setIdleUI();
+  const txt = el.textContent;
+  trans.textContent = txt;
+  trans.classList.remove('ph');
+  finalTxt = txt;
+  processText(txt);
+}
+
+// ── Text parse ──────────────────────────────────────────
+function processText(rawTxt) {
+  // বাংলা শব্দ → সংখ্যা convert
+  const txt = banglaWordToNum(rawTxt);
+  trans.textContent = rawTxt; // screen এ original দেখাও
+
+  let product = '', qty = null, price = null;
+  let selectedUnitPrice = 0;
+
+  // ✅ প্রথম বাংলা শব্দকে পণ্য নাম হিসেবে ধরো
+  const firstBanglaWord = rawTxt.match(/[\u0980-\u09FF]+/);
+  if (firstBanglaWord) {
+    product = firstBanglaWord[0];
+  }
+
+  // DB তে চেক করো আছে কিনা
+  const selectEl = document.getElementById('selProduct');
+  const options  = selectEl.options;
+  let foundInDB = false;
+  
+  for (let i = 1; i < options.length; i++) {
+    const pName = options[i].text.split('(')[0].trim();
+    if (pName === product) {
+      selectEl.value = options[i].value;
+      foundInDB = true;
+      selectedUnitPrice = parseFloat(options[i].dataset.price || 0);
+      document.getElementById('inpUnitPrice').value = selectedUnitPrice;
+      break;
+    }
+  }
+
+  // ── সংখ্যা বের করো (convert করা text থেকে) ──
+  const nums = txt.match(/\d+(?:\.\d+)?/g);
+  if (nums) {
+    if (nums.length >= 2) {
+      qty   = parseFloat(nums[0]);
+      price = parseFloat(nums[nums.length - 1]);
+    } else if (nums.length === 1) {
+      price = parseFloat(nums[0]);
+    }
+  }
+
+  // ── Screen এ দেখাও ──
+  document.getElementById('rProduct').textContent = product || '—';
+  document.getElementById('rQty').textContent     = qty   !== null ? toBn(qty)   : '—';
+  document.getElementById('rPrice').textContent   = price !== null ? '৳' + toBn(price) : '—';
+
+  if (qty)   document.getElementById('inpQty').value   = qty;
+  if (price) document.getElementById('inpTotal').value = price;
+
+  // ✅ যদি voice থেকে qty এবং price উভয়ই আছে, তাহলে unit_price recalculate করো
+  if (qty && price) {
+    const calcUnitPrice = (price / qty).toFixed(2);
+    document.getElementById('inpUnitPrice').value = calcUnitPrice;
+    document.getElementById('inpTotal').value = price;
+  }
+  // যদি শুধু price আছে (qty নেই), তাহলে DB থেকে আসা unit_price ব্যবহার করো
+  else if (price && !qty && selectedUnitPrice > 0) {
+    document.getElementById('inpTotal').value = price;
+  }
+
+  document.getElementById('inpDesc').value = rawTxt.trim();
+  resultBox.style.display = 'block';
+}
+
+function speakResult() {
+  const p   = document.getElementById('rProduct').textContent;
+  const amt = document.getElementById('inpTotal').value;
+  if (!amt) return;
+  speechSynthesis.cancel();
+  setTimeout(() => {
+    const msg = new SpeechSynthesisUtterance();
+    msg.text = `বিক্রয়: ${p !== '—' ? p + ' বেচলেন,' : ''} মোট ${amt} টাকা।`;
+    msg.lang = 'bn-BD'; msg.rate = 0.9;
+    const voices = speechSynthesis.getVoices();
+    const bn = voices.find(v => v.lang === 'bn-BD' || v.lang === 'bn-IN');
+    if (bn) msg.voice = bn;
+    speechSynthesis.speak(msg);
+  }, 150);
+}
+
+document.getElementById('selProduct').addEventListener('change', function() {
+  // ✅ Set unit price even if it's 0
+  const sp = parseFloat(this.options[this.selectedIndex].dataset.price || 0);
+  document.getElementById('inpUnitPrice').value = sp || '';
+  const qty = parseFloat(document.getElementById('inpQty').value || 0);
+  if (sp && qty) document.getElementById('inpTotal').value = (sp * qty).toFixed(2);
+});
+
+document.getElementById('inpQty').addEventListener('input', calcTotal);
+document.getElementById('inpUnitPrice').addEventListener('input', calcTotal);
+function calcTotal() {
+  const q  = parseFloat(document.getElementById('inpQty').value || 0);
+  const up = parseFloat(document.getElementById('inpUnitPrice').value || 0);
+  // ✅ Only calculate if both qty and unit price are present and > 0
+  if (q > 0 && up > 0) {
+    document.getElementById('inpTotal').value = (q * up).toFixed(2);
+  }
+}
+
+async function saveIt() {
+  const total = parseFloat(document.getElementById('inpTotal').value || 0);
+  if (!total) { toast('মোট টাকা দিন!', 'error'); return; }
+
+  const pid  = document.getElementById('selProduct').value;
+  const qty  = parseFloat(document.getElementById('inpQty').value || 0);
+  const up   = parseFloat(document.getElementById('inpUnitPrice').value || 0);
+  const desc = document.getElementById('inpDesc').value || trans.textContent;
+
+  if (!pid) {
+    const go = confirm('কোনো পণ্য select করা হয়নি। তবুও save করবেন?');
+    if (!go) return;
+  }
+
+  document.getElementById('saveBtn').disabled = true;
+  document.getElementById('saveBtn').textContent = 'সেভ হচ্ছে...';
+
+  try {
+    const r = await fetch("{% url 'save_transaction' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({
+        type: 'sell',
+        description: desc,
+        product_id: pid ? parseInt(pid) : null,
+        quantity: qty,
+        unit_price: up,
+        total_amount: total
+      })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast('✅ বিক্রয় সেভ হয়েছে! ৳' + toBn(total));
+      finalTxt = '';
+      trans.classList.add('ph');
+      trans.textContent = 'যা বলবেন তা এখানে দেখাবে...';
+      resultBox.style.display = 'none';
+      document.getElementById('selProduct').value   = '';
+      document.getElementById('inpQty').value       = '';
+      document.getElementById('inpUnitPrice').value = '';
+      document.getElementById('inpTotal').value     = '';
+      document.getElementById('inpDesc').value      = '';
+    } else { toast('সমস্যা হয়েছে!', 'error'); }
+  } catch(e) { toast('সমস্যা হয়েছে!', 'error'); }
+
+  document.getElementById('saveBtn').disabled = false;
+  document.getElementById('saveBtn').textContent = '✅ বিক্রয় সেভ করুন';
+}
+</script>
+{% endblock %}

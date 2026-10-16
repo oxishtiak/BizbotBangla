@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>রেজিস্ট্রেশন — BizBot Bangla</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri',sans-serif}
+body{background:linear-gradient(135deg,#14532d 0%,#16a34a 50%,#052e16 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:white;border-radius:20px;padding:36px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.logo{text-align:center;margin-bottom:24px}
+.logo span{font-size:36px;display:block;margin-bottom:6px}
+.logo h1{font-size:20px;font-weight:700;color:#0f172a}
+label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:5px}
+input,select{width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Hind Siliguri',sans-serif;transition:border .15s;background:white}
+input:focus,select:focus{outline:none;border-color:#16a34a}
+.form-g{margin-bottom:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.section{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid #f1f5f9}
+.btn{width:100%;padding:12px;background:#16a34a;color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Hind Siliguri',sans-serif;margin-top:4px}
+.btn:hover{background:#15803d}
+.link{text-align:center;margin-top:16px;font-size:13px;color:#64748b}
+.link a{color:#16a34a;font-weight:600;text-decoration:none}
+.err{background:#fce8e8;color:#991b1b;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo"><span>🏪</span><h1>নতুন দোকান রেজিস্ট্রেশন</h1></div>
+  {% for msg in messages %}<div class="err">{{ msg }}</div>{% endfor %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="section">দোকানের তথ্য</div>
+    <div class="form-g"><label>দোকানের নাম *</label><input type="text" name="shop_name" placeholder="রহিমের মুদি দোকান" required></div>
+    <div class="row">
+      <div class="form-g"><label>মালিকের নাম *</label><input type="text" name="owner_name" placeholder="আপনার নাম" required></div>
+      <div class="form-g"><label>ফোন</label><input type="text" name="phone" placeholder="০১XXXXXXXXX"></div>
+    </div>
+    <div class="section">লগইন তথ্য</div>
+    <div class="row">
+      <div class="form-g"><label>Username *</label><input type="text" name="username" placeholder="ইংরেজিতে" required></div>
+      <div class="form-g"><label>পাসওয়ার্ড *</label><input type="password" name="password" placeholder="পাসওয়ার্ড" required></div>
+    </div>
+    <button type="submit" class="btn">রেজিস্ট্রেশন করুন →</button>
+  </form>
+  <div class="link">আগে থেকে আছে? <a href="{% url 'login' %}">লগইন করুন</a></div>
+</div>
+</body></html>

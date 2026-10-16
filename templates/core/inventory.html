@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load bangla_number %}
+{% block title %}পণ্য ও স্টক{% endblock %}
+{% block content %}
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:start">
+  <div><h1>📦 পণ্য ও স্টক</h1><p>সব পণ্যের স্টক এখানে দেখুন</p></div>
+  <a href="{% url 'add_product' %}" class="btn btn-green">+ নতুন পণ্য</a>
+</div>
+
+<!-- ✅ Search box -->
+<div style="margin-bottom:12px">
+  <div style="position:relative;max-width:340px">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:#94a3b8">🔍</span>
+    <input
+      type="text"
+      id="searchInput"
+      oninput="searchProduct()"
+      placeholder="পণ্যের নাম লিখুন..."
+      class="form-control"
+      style="padding-left:36px;font-size:14px"
+    >
+  </div>
+  <div id="searchInfo" style="font-size:12px;color:#64748b;margin-top:6px;display:none">
+    — পাওয়া গেছে, উপরে হাইলাইট করা হয়েছে
+  </div>
+</div>
+
+<div class="card">
+  <table class="table" id="productTable">
+    <thead>
+      <tr>
+        <th>পণ্যের নাম</th>
+        <th>স্টক</th>
+        <th>একক</th>
+        <th>ক্রয় মূল্য</th>
+        <th>বিক্রয় মূল্য</th>
+        <th>লাভ/একক</th>
+        <th>স্ট্যাটাস</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="productBody">
+    {% for p in products %}
+    <tr data-name="{{ p.name|lower }}">
+      <td style="font-weight:600">{{ p.name }}</td>
+      <td style="font-weight:600;color:{% if p.is_low_stock %}#dc2626{% else %}#16a34a{% endif %}">{{ p.stock|bn }}</td>
+      <td>{{ p.unit }}</td>
+      <td>৳{{ p.buy_price|floatformat:2|bn }}</td>
+      <td>৳{{ p.sell_price|floatformat:2|bn }}</td>
+      <td style="color:{% if p.profit_per_unit > 0 %}#16a34a{% elif p.profit_per_unit < 0 %}#dc2626{% else %}#94a3b8{% endif %};font-weight:600">
+        ৳{{ p.profit_per_unit|floatformat:2|bn }}
+      </td>
+      <td>
+        {% if p.stock <= 0 %}
+          <span class="badge badge-danger">স্টক শেষ</span>
+        {% elif p.is_low_stock %}
+          <span class="badge badge-danger">কম স্টক</span>
+        {% else %}
+          <span class="badge badge-ok">ঠিক আছে</span>
+        {% endif %}
+      </td>
+      <td style="display:flex;gap:6px">
+        <a href="{% url 'edit_product' p.pk %}" class="btn btn-outline btn-sm">✏️</a>
+        <a href="{% url 'delete_product' p.pk %}" class="btn btn-outline btn-sm"
+          style="color:#dc2626;border-color:#fecaca"
+          onclick="return confirm('মুছে ফেলবেন?')">🗑</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" style="text-align:center;padding:32px;color:#94a3b8">কোনো পণ্য নেই। নতুন পণ্য যোগ করুন!</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function searchProduct() {
+  const query   = document.getElementById('searchInput').value.trim().toLowerCase();
+  const rows    = document.querySelectorAll('#productBody tr[data-name]');
+  const info    = document.getElementById('searchInfo');
+  const tbody   = document.getElementById('productBody');
+
+  // search খালি হলে সব reset করো
+  if (!query) {
+    rows.forEach(row => {
+      row.style.background = '';
+      row.style.order      = '';
+      tbody.appendChild(row); // original order
+    });
+    info.style.display = 'none';
+    return;
+  }
+
+  let matchCount = 0;
+  const matched    = [];
+  const unmatched  = [];
+
+  rows.forEach(row => {
+    const name = row.getAttribute('data-name') || '';
+    if (name.includes(query)) {
+      // ✅ match হলে হাইলাইট করো
+      row.style.background = '#fef9c3';
+      row.style.outline    = '2px solid #f59e0b';
+      matched.push(row);
+      matchCount++;
+    } else {
+      row.style.background = '';
+      row.style.outline    = '';
+      unmatched.push(row);
+    }
+  });
+
+  // ✅ matched rows আগে দেখাও
+  matched.forEach(row => tbody.insertBefore(row, tbody.firstChild));
+  // unmatched নিচে
+  unmatched.forEach(row => tbody.appendChild(row));
+
+  // info text
+  if (matchCount > 0) {
+    info.textContent = `"${query}" — ${matchCount}টি পণ্য পাওয়া গেছে, উপরে হাইলাইট করা হয়েছে`;
+    info.style.color   = '#16a34a';
+    info.style.display = 'block';
+  } else {
+    info.textContent = `"${query}" — কোনো পণ্য পাওয়া যায়নি`;
+    info.style.color   = '#dc2626';
+    info.style.display = 'block';
+  }
+}
+</script>
+{% endblock %}

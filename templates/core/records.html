@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load bangla_number %}
+{% block title %}হিসাবের তালিকা{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>📋 হিসাবের তালিকা</h1>
+  <p>{% if period == 'weekly' %}এই সপ্তাহ{% elif period == 'monthly' %}এই মাস{% else %}আজকের{% endif %} হিসাব</p>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+  <a href="?period=daily"   class="btn {% if period == 'daily' or not period %}btn-blue{% else %}btn-outline{% endif %} btn-sm">📅 আজ</a>
+  <a href="?period=weekly"  class="btn {% if period == 'weekly' %}btn-blue{% else %}btn-outline{% endif %} btn-sm">📆 এই সপ্তাহ</a>
+  <a href="?period=monthly" class="btn {% if period == 'monthly' %}btn-blue{% else %}btn-outline{% endif %} btn-sm">🗓️ এই মাস</a>
+  <button onclick="speakSummary()" class="btn btn-outline btn-sm">🔊 রিপোর্ট শুনুন</button>
+  <a href="{% url 'export_csv' %}?period={{ period }}" class="btn btn-green btn-sm" style="margin-left:auto">⬇ CSV ডাউনলোড</a>
+  {% if txns %}
+  <form method="post" action="{% url 'reset_transactions' %}" id="resetForm">
+    {% csrf_token %}
+    <input type="hidden" name="period" value="{{ period }}">
+    <button type="button" onclick="confirmReset()" class="btn btn-sm"
+      style="background:#fce8e8;color:#dc2626;border:1px solid #fecaca;">🗑 সব মুছুন</button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- Summary card -->
+<div style="margin-bottom:16px">
+  <div class="card card-pad" style="border-left:4px solid {% if is_profit %}#16a34a{% else %}#dc2626{% endif %};background:{% if is_profit %}#f0fdf4{% else %}#fef2f2{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+
+      <div style="text-align:center;min-width:110px">
+        <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:4px">মোট বিক্রয়</div>
+        <div style="font-size:22px;font-weight:700;color:#16a34a">৳{{ sell_total|floatformat:0|bn }}</div>
+      </div>
+
+      <div style="font-size:20px;color:#94a3b8">−</div>
+
+      <div style="text-align:center;min-width:110px">
+        <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:4px">মোট ক্রয়</div>
+        <div style="font-size:22px;font-weight:700;color:#ea580c">৳{{ buy_total|floatformat:0|bn }}</div>
+      </div>
+
+      {% if baki_total > 0 %}
+      <div style="font-size:20px;color:#94a3b8">−</div>
+      <div style="text-align:center;min-width:110px">
+        <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:4px">💸 বাকি (পেন্ডিং)</div>
+        <div style="font-size:22px;font-weight:700;color:#7c3aed">৳{{ baki_total|floatformat:0|bn }}</div>
+      </div>
+      {% endif %}
+
+      <div style="font-size:20px;color:#94a3b8">=</div>
+
+      <div style="text-align:center;min-width:140px;padding:12px 20px;border-radius:12px;background:{% if is_profit %}#dcfce7{% else %}#fce8e8{% endif %}">
+        <div style="font-size:11px;font-weight:600;color:{% if is_profit %}#166534{% else %}#991b1b{% endif %};text-transform:uppercase;margin-bottom:4px">
+          {% if is_profit %}✅ প্রকৃত ব্যালেন্স{% else %}❌ ক্ষতি{% endif %}
+        </div>
+        <div style="font-size:26px;font-weight:700;color:{% if is_profit %}#16a34a{% else %}#dc2626{% endif %}">
+          ৳{{ real_balance|floatformat:0|bn }}
+        </div>
+        {% if baki_total > 0 %}
+        <div style="font-size:10px;color:#64748b;margin-top:2px">বাকি পরিশোধে বাড়বে</div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Transaction list -->
+<div class="card" style="margin-bottom:16px">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>তারিখ</th><th>বিবরণ</th><th>পণ্য</th><th>পরিমাণ</th>
+        <th>ধরন</th><th style="text-align:right">টাকা</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for t in txns %}
+    <tr>
+      <td style="color:#64748b;font-size:12px;white-space:nowrap">{{ t.date|date:"j F, Y"|bn }}</td>
+      <td>{{ t.description|truncatechars:40|bn }}</td>
+      <td>{{ t.product.name|default:"—" }}</td>
+      <td>{{ t.quantity|floatformat:1|bn }} {{ t.product.unit|default:"" }}</td>
+      <td><span class="badge badge-{{ t.transaction_type }}">{{ t.get_transaction_type_display }}</span></td>
+      <td style="text-align:right;font-weight:600;color:{% if t.transaction_type == 'sell' %}#16a34a{% else %}#ea580c{% endif %}">
+        ৳{{ t.total_amount|floatformat:0|bn }}
+      </td>
+      <td>
+        <a href="{% url 'delete_transaction' t.pk %}" class="btn btn-outline btn-sm"
+           style="color:#dc2626;border-color:#fecaca"
+           onclick="return confirm('এই লেনদেন মুছে ফেলবেন?')">🗑</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="text-align:center;padding:32px;color:#94a3b8">এই সময়ে কোনো লেনদেন নেই</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- বাকির list -->
+{% if baki_list %}
+<div class="card">
+  <div style="padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:13px;font-weight:600;color:#7c3aed">💸 এই সময়ের বাকি</span>
+    <a href="{% url 'baki_list' %}" style="font-size:12px;color:#7c3aed;text-decoration:none">সব বাকি →</a>
+  </div>
+  <table class="table">
+    <thead>
+      <tr><th>তারিখ</th><th>নাম</th><th>পণ্য</th><th>বিবরণ</th><th style="text-align:right">টাকা</th></tr>
+    </thead>
+    <tbody>
+    {% for b in baki_list %}
+    <tr>
+      <td style="color:#64748b;font-size:12px">{{ b.date|date:"j F, Y"|bn }}</td>
+      <td style="font-weight:600">{{ b.name }}</td>
+      <td>{{ b.product.name|default:"—" }}</td>
+      <td style="color:#64748b">{{ b.note|default:"—" }}</td>
+      <td style="text-align:right;font-weight:600;color:#7c3aed">৳{{ b.amount|floatformat:0|bn }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let voicesLoaded = false;
+speechSynthesis.onvoiceschanged = () => { voicesLoaded = true; };
+speechSynthesis.getVoices();
+
+function toBanglaNum(n) {
+  return String(Math.round(n)).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+}
+
+function speakSummary() {
+  const sell    = {{ sell_total|floatformat:0 }};
+  const buy     = {{ buy_total|floatformat:0 }};
+  const baki    = {{ baki_total|floatformat:0 }};
+  const balance = {{ real_balance|floatformat:0 }};
+  const isProfit = {{ is_profit|yesno:"true,false" }};
+
+  {% if period == 'weekly' %}const periodLabel = "এই সপ্তাহে";
+  {% elif period == 'monthly' %}const periodLabel = "এই মাসে";
+  {% else %}const periodLabel = "আজকে";{% endif %}
+
+  let text = `${periodLabel} মোট বিক্রয় ${toBanglaNum(sell)} টাকা। মোট ক্রয় ${toBanglaNum(buy)} টাকা।`;
+  if (baki > 0) text += ` বাকি পেন্ডিং ${toBanglaNum(baki)} টাকা।`;
+  text += ` প্রকৃত ব্যালেন্স ${toBanglaNum(Math.abs(balance))} টাকা ${isProfit ? 'লাভ' : 'ক্ষতি'}।`;
+
+  speechSynthesis.cancel();
+  setTimeout(() => {
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = 'bn-BD'; msg.rate = 0.85; msg.pitch = 1; msg.volume = 1;
+    const bn = speechSynthesis.getVoices().find(v => v.lang==='bn-BD'||v.lang==='bn-IN');
+    if (bn) msg.voice = bn;
+    speechSynthesis.speak(msg);
+  }, 200);
+}
+
+function confirmReset() {
+  {% if period == 'weekly' %}const label = "এই সপ্তাহের";
+  {% elif period == 'monthly' %}const label = "এই মাসের";
+  {% else %}const label = "আজকের";{% endif %}
+  if (confirm(`⚠️ ${label} সব লেনদেন মুছে যাবে। undo করা যাবে না!\n\nমুছে ফেলবেন?`))
+    document.getElementById('resetForm').submit();
+}
+</script>
+{% endblock %}
